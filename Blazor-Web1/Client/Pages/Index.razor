@@ -1,0 +1,52 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+
+<div class="form-group">
+    <label>
+        Timer:
+        <input class="form-control input-lg" @bind="_currentTime" />
+    </label>
+</div>
+
+<button @onclick="Start" disabled="@(IsRunning)">Start Timer</button>
+<button @onclick="Stop" disabled="@(!IsRunning)">Stop Timer</button>
+
+<hr>
+
+@code {
+
+    private HubConnection _hubConnection;
+    private string _currentTime;
+    public bool IsRunning;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/timer"))
+            .Build();
+
+        _hubConnection.On<string>("ReceiveTime", (currentTime) =>
+        {
+            if (!IsRunning) IsRunning = true;
+
+            _currentTime = currentTime;
+            StateHasChanged();
+        });
+
+        _hubConnection.On("StopTime", () =>
+        {
+            if (IsRunning) IsRunning = false;
+            StateHasChanged();
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    Task Start() =>
+        _hubConnection.SendAsync("Start");
+
+    Task Stop() =>
+        _hubConnection.SendAsync("Stop");
+
+}
