@@ -1,6 +1,14 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
-@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Microsoft.AspNetCore.Components
+
+@inject IAccessTokenProvider AuthenticationService
+@inject NavigationManager Navigation
+@inject HttpClient Http
+
+@attribute [Authorize]
 
 <div class="form-group">
     <label>
@@ -19,12 +27,17 @@
     private HubConnection _hubConnection;
     private string _currentTime;
     public bool IsRunning;
+    private AccessTokenResult accessTokenResult;
+
 
     protected override async Task OnInitializedAsync()
     {
+        Http.BaseAddress = new Uri(Navigation.BaseUri);
+        accessTokenResult = await AuthenticationService.RequestAccessToken();
+
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/timer"))
-            .Build();
+        .WithUrl(Navigation.ToAbsoluteUri("/timer"))
+        .Build();
 
         _hubConnection.On<string>("ReceiveTime", (currentTime) =>
         {
